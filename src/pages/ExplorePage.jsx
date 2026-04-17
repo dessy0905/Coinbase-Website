@@ -377,7 +377,7 @@ const ExplorePage = () => {
 	}, []);
 
 	const fetchCryptoData = useCallback(async () => {
-		const res = await fetch('http://localhost:5000/api/crypto');
+		const res = await fetch('https://interim-assesment-dessy0905-2-1.onrender.com/api/crypto');
 		if (!res.ok) throw new Error(`Crypto API ${res.status}`);
 		return await res.json();
 	}, []);
