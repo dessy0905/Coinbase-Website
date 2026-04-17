@@ -12,43 +12,6 @@ import FilterDropdown from '../components/ui/FilterDropdown';
 
 const FALLBACK_GHS = 16.5;
 
-/* Coin metadata — same list as landing page CryptoTable (Binance symbols) */
-const COIN_META = [
-	{ binance: 'BTCUSDT', name: 'Bitcoin', symbol: 'BTC', supply: 19700000 },
-	{ binance: 'ETHUSDT', name: 'Ethereum', symbol: 'ETH', supply: 120200000 },
-	{ binance: 'BNBUSDT', name: 'BNB', symbol: 'BNB', supply: 145900000 },
-	{ binance: 'SOLUSDT', name: 'Solana', symbol: 'SOL', supply: 441000000 },
-	{ binance: 'XRPUSDT', name: 'XRP', symbol: 'XRP', supply: 56600000000 },
-	{ binance: 'ADAUSDT', name: 'Cardano', symbol: 'ADA', supply: 37100000000 },
-	{ binance: 'DOGEUSDT', name: 'Dogecoin', symbol: 'DOGE', supply: 143600000000 },
-	{ binance: 'DOTUSDT', name: 'Polkadot', symbol: 'DOT', supply: 1400000000 },
-	{ binance: 'LTCUSDT', name: 'Litecoin', symbol: 'LTC', supply: 73800000 },
-	{ binance: 'AVAXUSDT', name: 'Avalanche', symbol: 'AVAX', supply: 403000000 },
-	{ binance: 'LINKUSDT', name: 'Chainlink', symbol: 'LINK', supply: 608000000 },
-	{ binance: 'UNIUSDT', name: 'Uniswap', symbol: 'UNI', supply: 600000000 },
-	{ binance: 'ATOMUSDT', name: 'Cosmos', symbol: 'ATOM', supply: 292000000 },
-	{ binance: 'XLMUSDT', name: 'Stellar', symbol: 'XLM', supply: 29600000000 },
-	{ binance: 'ETCUSDT', name: 'Ethereum Classic', symbol: 'ETC', supply: 147000000 },
-	{ binance: 'AAVEUSDT', name: 'Aave', symbol: 'AAVE', supply: 15100000 },
-	{ binance: 'ALGOUSDT', name: 'Algorand', symbol: 'ALGO', supply: 8100000000 },
-	{ binance: 'FILUSDT', name: 'Filecoin', symbol: 'FIL', supply: 530000000 },
-	{ binance: 'TRXUSDT', name: 'TRON', symbol: 'TRX', supply: 86200000000 },
-	{ binance: 'XTZUSDT', name: 'Tezos', symbol: 'XTZ', supply: 983000000 },
-	{ binance: 'MKRUSDT', name: 'Maker', symbol: 'MKR', supply: 900000 },
-	{ binance: 'COMPUSDT', name: 'Compound', symbol: 'COMP', supply: 8300000 },
-	{ binance: 'DASHUSDT', name: 'Dash', symbol: 'DASH', supply: 11500000 },
-	{ binance: 'EOSUSDT', name: 'EOS', symbol: 'EOS', supply: 1100000000 },
-	{ binance: 'BATUSDT', name: 'Basic Attention', symbol: 'BAT', supply: 1500000000 },
-	{ binance: 'VETUSDT', name: 'VeChain', symbol: 'VET', supply: 72700000000 },
-	{ binance: 'NEOUSDT', name: 'NEO', symbol: 'NEO', supply: 70500000 },
-	{ binance: 'WAVESUSDT', name: 'Waves', symbol: 'WAVES', supply: 100000000 },
-	{ binance: 'SHIBUSDT', name: 'Shiba Inu', symbol: 'SHIB', supply: 589000000000000 },
-	{ binance: 'MATICUSDT', name: 'Polygon', symbol: 'MATIC', supply: 9900000000 },
-];
-
-const COIN_META_MAP = Object.fromEntries(COIN_META.map((c) => [c.binance, c]));
-const BINANCE_SYMBOLS = encodeURIComponent(JSON.stringify(COIN_META.map((c) => c.binance)));
-
 const getCoinIcon = (symbol) =>
 	`https://cdn.jsdelivr.net/gh/spothq/cryptocurrency-icons@master/32/color/${symbol.toLowerCase()}.png`;
 /* Currency list (CoinGecko supported) */
@@ -397,12 +360,8 @@ const ExplorePage = () => {
 	const [showMoreStats, setShowMoreStats] = useState(false);
 	const [showMorePrices, setShowMorePrices] = useState(false);
 
-	// Derived currency label & rate
+	// Derived currency label
 	const currLabel = currency.toUpperCase();
-	const getRate = useCallback(() => {
-		if (currency === 'usd') return 1;
-		return fxRates.current[currency] ?? FALLBACK_GHS;
-	}, [currency]);
 
 	/* ── Fetch FX rates once ── */
 	useEffect(() => {
@@ -417,75 +376,52 @@ const ExplorePage = () => {
 		})();
 	}, []);
 
-	/* ── Fetch from Binance (same as CryptoTable) ── */
-	const fetchPrices = useCallback(async () => {
-		try {
-			const res = await fetch(`https://api.binance.com/api/v3/ticker/24hr?symbols=${BINANCE_SYMBOLS}`);
-			if (!res.ok) throw new Error(`Binance ${res.status}`);
-			return await res.json();
-		} catch (error) {
-			console.warn('Binance fetch failed, using fallback data:', error);
-			// Fallback mock data structure derived from COIN_META
-			return COIN_META.map((meta, i) => {
-				// Deterministic mock values based on index to look realistic
-				const basePrice = [67200, 3500, 590, 145, 0.5, 0.45, 0.16][i % 7];
-				const lastPrice = (basePrice * (1 + (Math.sin(i) * 0.05))).toFixed(4);
-				const priceChangePercent = (Math.sin(i * 1.5) * 5).toFixed(2);
-				return {
-					symbol: meta.binance,
-					lastPrice,
-					priceChangePercent,
-					quoteVolume: (Math.abs(Math.cos(i)) * 1000000000 + 100000000).toFixed(2),
-				};
-			});
-		}
+	const fetchCryptoData = useCallback(async () => {
+		const res = await fetch('http://localhost:5000/api/crypto');
+		if (!res.ok) throw new Error(`Crypto API ${res.status}`);
+		return await res.json();
 	}, []);
 
-	const buildCoins = useCallback((tickers) => {
-		const rate = getRate();
-		return tickers
-			.map((t) => {
-				const meta = COIN_META_MAP[t.symbol];
-				if (!meta) return null;
-				const priceUsd = parseFloat(t.lastPrice);
-				const price = priceUsd * rate;
-				const change24h = parseFloat(t.priceChangePercent);
-				const volumeUsd = parseFloat(t.quoteVolume);
-				const mktCap = priceUsd * (meta.supply || 1) * rate;
+	const mapApiCoins = useCallback((items) => {
+		return items
+			.map((coin) => {
+				const symbol = (coin.symbol || '').toUpperCase();
+				if (!symbol) return null;
+				const priceValue = typeof coin.price === 'number' ? coin.price : parseFloat(coin.price);
+				const changeValue = typeof coin.change24h === 'number' ? coin.change24h : parseFloat(coin.change24h);
 				return {
-					id: t.symbol,
-					name: meta.name,
-					symbol: meta.symbol,
-					image: getCoinIcon(meta.symbol),
-					current_price: price,
-					price_change_percentage_24h: change24h,
-					market_cap: mktCap,
-					total_volume: volumeUsd * rate,
+					id: coin._id || coin.id || symbol,
+					name: coin.name || symbol,
+					symbol,
+					image: getCoinIcon(symbol),
+					current_price: Number.isFinite(priceValue) ? priceValue : 0,
+					price_change_percentage_24h: Number.isFinite(changeValue) ? changeValue : 0,
+					market_cap: coin.market_cap ?? coin.marketCap ?? 0,
+					total_volume: coin.total_volume ?? coin.totalVolume ?? coin.volume ?? 0,
 				};
 			})
-			.filter(Boolean)
-			.sort((a, b) => b.market_cap - a.market_cap);
-	}, [getRate]);
+			.filter(Boolean);
+	}, []);
 
-	/* ── Initial load + polling ── */
+	/* ── Fetch crypto data from local API ── */
 	useEffect(() => {
 		let cancelled = false;
 		(async () => {
 			try {
-				const tickers = await fetchPrices();
-				if (!cancelled) { setCoins(buildCoins(tickers)); setLoading(false); }
+				const data = await fetchCryptoData();
+				if (!cancelled) {
+					setCoins(mapApiCoins(data));
+					setLoading(false);
+				}
 			} catch (err) {
-				if (!cancelled) { setError(err.message); setLoading(false); }
+				if (!cancelled) {
+					setError(err.message || 'Failed to load crypto data');
+					setLoading(false);
+				}
 			}
 		})();
-		const id = setInterval(async () => {
-			try {
-				const tickers = await fetchPrices();
-				if (!cancelled) setCoins(buildCoins(tickers));
-			} catch { /* silent */ }
-		}, 5000);
-		return () => { cancelled = true; clearInterval(id); };
-	}, [fetchPrices, buildCoins]);
+		return () => { cancelled = true; };
+	}, [fetchCryptoData, mapApiCoins]);
 
 	/* ── Reset page when filters change ── */
 	useEffect(() => { setCurrentPage(1); }, [assetFilter, timePeriod, currency, rowsPerPage, searchQuery]);
@@ -587,9 +523,6 @@ const ExplorePage = () => {
 		return [...new Set(pages)];
 	};
 
-	/* ── Get display label for asset filter ── */
-	const assetFilterLabel = ASSET_FILTERS.find((f) => f.value === assetFilter)?.label || 'All assets';
-
 	return (
 		<div className="min-h-screen flex flex-col bg-white">
 			<Navbar />
@@ -601,7 +534,7 @@ const ExplorePage = () => {
 						<div className="flex-1 min-w-0">
 
 							{/* ── Page Header ── */}
-							<div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 pb-6 border-b border-gray-100 mb-8 mt-10">
+							<div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4  border-b border-gray-100 mb-8 mt-18">
 								<div>
 									<h1 className="text-[32px] font-bold leading-tight text-gray-900 flex items-center md:items-end flex-wrap gap-2 md:gap-3">
 										Explore crypto
@@ -890,7 +823,7 @@ const ExplorePage = () => {
 						<aside className="w-full lg:w-[320px] shrink-0 flex flex-col gap-6 lg:pl-8 lg:border-l lg:border-gray-100">
 
 							{/* Get Started CTA */}
-							<div className="bg-blue-600 rounded-2xl p-5 relative overflow-hidden min-h-[160px] mt-10">
+							<div className="bg-blue-600 rounded-2xl p-5 relative overflow-hidden min-h-[160px] mt-20">
 								<div className="relative z-10 w-[65%] shrink-0">
 									<h3 className="text-[17px] leading-[24px] font-semibold text-white mb-1">Get started</h3>
 									<p className="text-[15px] leading-[20px] text-white mb-5">Create your account today</p>

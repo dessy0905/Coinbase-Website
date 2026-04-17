@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 
 // Icons for Step 1
 const PersonalIcon = () => (
@@ -68,6 +68,44 @@ const DeveloperIcon = () => (
 
 const SignUp = () => {
   const [step, setStep] = useState(1);
+  const [name, setName] = useState("");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [error, setError] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
+  const navigate = useNavigate();
+
+  const handleRegister = async (e) => {
+    e.preventDefault();
+    setError("");
+    setIsLoading(true);
+    try {
+      const res = await fetch("http://localhost:5000/api/auth/register", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          name,
+          email,
+          password,
+        }),
+      });
+
+      const data = await res.json();
+
+      if (res.ok) {
+        alert("Registered successfully");
+        navigate("/signin");
+      } else {
+        setError(data.msg || "Registration failed. Please try again.");
+      }
+    } catch (error) {
+      setError("An error occurred. Please try again.");
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   return (
     <div className="min-h-screen bg-[#0A0B0D] flex flex-col pt-6 font-sans">
@@ -86,11 +124,6 @@ const SignUp = () => {
             <h1 className="text-[28px] md:text-[32px] font-bold text-white mb-8 tracking-tight leading-tight px-2">
               What kind of account are you creating?
             </h1>
-
-            {/* Demo warning */}
-            <div className="mb-6 p-3 bg-yellow-900/30 border border-yellow-700/50 rounded-lg mx-2">
-              <p className="text-yellow-200 text-sm">⚠️ <strong>Demo app</strong> – do not use your real password</p>
-            </div>
 
             <div className="flex flex-col gap-4">
               {/* Personal Card */}
@@ -161,21 +194,64 @@ const SignUp = () => {
               </p>
             </div>
 
+            {/* Demo warning */}
+					<div className="mb-6 p-3 bg-yellow-900/30 border border-yellow-700/50 rounded-lg">
+						<p className="text-yellow-200 text-sm">⚠️ <strong>Demo app</strong> – do not use your real credentials</p>
+					</div>
+
             {/* Form */}
-            <form className="flex flex-col mb-6">
+            <form className="flex flex-col mb-6" onSubmit={handleRegister}>
+              {error && (
+                <div className="text-red-500 mb-4 text-sm font-bold">
+                  {error}
+                </div>
+              )}
+              <label className="text-white text-[13px] font-bold mb-2">
+                Name
+              </label>
+              <input
+                type="text"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                placeholder="Full Name"
+                className="bg-transparent border border-[#2B2B2B] rounded-xl px-4 py-4 text-white text-[15px] placeholder-gray-500 hover:border-gray-500 focus:border-white focus:outline-none focus:ring-1 focus:ring-white transition-colors mb-4"
+                required
+              />
+
               <label className="text-white text-[13px] font-bold mb-2">
                 Email
               </label>
               <input
                 type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
                 placeholder="Your email address"
                 className="bg-transparent border border-[#2B2B2B] rounded-xl px-4 py-4 text-white text-[15px] placeholder-gray-500 hover:border-gray-500 focus:border-white focus:outline-none focus:ring-1 focus:ring-white transition-colors mb-4"
+                required
+              />
+
+              <label className="text-white text-[13px] font-bold mb-2 flex justify-between">
+                <span>Password</span>
+              
+              </label>
+              <input
+                type="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                placeholder="Secure password"
+                className="bg-transparent border border-[#2B2B2B] rounded-xl px-4 py-4 text-white text-[15px] placeholder-gray-500 hover:border-gray-500 focus:border-white focus:outline-none focus:ring-1 focus:ring-white transition-colors mb-4"
+                required
               />
               <button
-                type="button"
-                className="w-full rounded-full py-[18px] font-bold text-[15px] bg-[#273860] text-[#557FCA] cursor-not-allowed border border-transparent transition-colors mt-2"
+                type="submit"
+                disabled={isLoading || !name || !email || !password}
+                className={`w-full rounded-full py-[18px] font-bold text-[15px] transition-colors mt-2 ${
+                  isLoading || !name || !email || !password
+                    ? "bg-[#273860] text-[#557FCA] cursor-not-allowed"
+                    : "bg-[#0b5cff] text-white hover:bg-[#004ade]"
+                }`}
               >
-                Continue
+                {isLoading ? "Creating account..." : "Continue"}
               </button>
             </form>
 

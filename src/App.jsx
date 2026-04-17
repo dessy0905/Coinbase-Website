@@ -1,8 +1,9 @@
-import { Outlet, Route, Routes, useParams } from "react-router-dom";
+import { Outlet, Route, Routes, useParams, Navigate } from "react-router-dom";
 import Navbar from "./components/layout/Navbar";
 import HeroSection from "./pages/HeroSection";
 import SignIn from "./pages/SignIn";
 import SignUp from "./pages/SignUp";
+import Profile from "./pages/Profile";
 import ForgotPassword from "./pages/ForgotPassword";
 import ExplorePage from "./pages/ExplorePage";
 import LearnPage from "./pages/LearnPage";
@@ -51,14 +52,16 @@ function BareLayout() {
   return <Outlet />
 }
 
+function ProtectedRoute({ children }) {
+  const token = localStorage.getItem("token");
+  return token ? children : <Navigate to="/signin" replace />;
+}
+
 function App() {
   return (
     <Routes>
       <Route element={<MainLayout />}>
         <Route path="/" element={<HeroSection />} />
-        
-        
-        
         <Route path="/:section/:slug" element={<DynamicMenuPage />} />
       </Route>
 
@@ -66,6 +69,7 @@ function App() {
         <Route path="/explore" element={<ExplorePage />} />
         <Route path="/signin" element={<SignIn />} />
         <Route path="/signup" element={<SignUp />} />
+        <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
         <Route path="/forgot-password" element={<ForgotPassword />} />
         <Route path="/learn" element={<LearnPage />} />
       </Route>
