@@ -343,8 +343,7 @@ const ExplorePage = () => {
 	// Data
 	const [coins, setCoins] = useState([]);
 	const [loading, setLoading] = useState(true);
-	const [error, setError] = useState(null);
-	const [searchQuery, setSearchQuery] = useState('');
+	const [error, setError] = useState(null);	const [posting, setPosting] = useState(false);	const [searchQuery, setSearchQuery] = useState('');
 	const fxRates = useRef({ ghs: FALLBACK_GHS });
 
 	// Filters
@@ -381,6 +380,46 @@ const ExplorePage = () => {
 		if (!res.ok) throw new Error(`Crypto API ${res.status}`);
 		return await res.json();
 	}, []);
+
+	const postCryptoData = useCallback(async (cryptoData) => {
+		try {
+			setPosting(true);
+			const res = await fetch('https://interim-assesment-dessy0905-2-1.onrender.com/api/crypto', {
+				method: 'POST',
+				headers: {
+					'Content-Type': 'application/json',
+				},
+				body: JSON.stringify(cryptoData),
+			});
+			if (!res.ok) throw new Error(`Failed to post crypto data: ${res.status}`);
+			const result = await res.json();
+			
+			// Refresh the coins list after successful post
+			const updatedData = await fetchCryptoData();
+			setCoins(mapApiCoins(updatedData));
+			
+			return result;
+		} catch (error) {
+			console.error('Error posting crypto data:', error);
+			setError(error.message || 'Failed to post crypto data');
+			throw error;
+		} finally {
+			setPosting(false);
+		}
+	}, [fetchCryptoData, mapApiCoins]);
+
+	const refreshCoins = useCallback(async () => {
+		try {
+			setLoading(true);
+			const data = await fetchCryptoData();
+			setCoins(mapApiCoins(data));
+			setError('');
+		} catch (err) {
+			setError(err.message || 'Failed to refresh crypto data');
+		} finally {
+			setLoading(false);
+		}
+	}, [fetchCryptoData, mapApiCoins]);
 
 	const mapApiCoins = useCallback((items) => {
 		return items
@@ -545,10 +584,11 @@ const ExplorePage = () => {
 									</p>
 								</div>
 
-								{/* Search bar */}
-								<div className="relative w-full md:w-[360px]">
-									<div className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-900">
-										<SearchIcon />
+								{/* Search bar and Refresh button */}
+								<div className="flex gap-3 w-full md:w-auto">
+									<div className="relative flex-1 md:flex-none md:w-[360px]">
+										<div className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-900">
+											<SearchIcon />
 									</div>
 									<input
 										type="text"
@@ -557,6 +597,15 @@ const ExplorePage = () => {
 										onChange={(e) => setSearchQuery(e.target.value)}
 										className="w-full pl-11 pr-4 py-3 rounded-full bg-gray-50 text-body text-gray-900 outline-none hover:bg-gray-100 focus:bg-white focus:border focus:border-blue-600 transition-colors duration-200 placeholder:text-gray-600"
 									/>
+									</div>
+									<button 
+										onClick={refreshCoins} 
+										disabled={loading}
+										className="px-4 py-3 rounded-full bg-gray-50 text-gray-900 hover:bg-gray-100 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center"
+										title="Refresh crypto data"
+									>
+										<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={loading ? 'animate-spin' : ''}><path d="M23 4v6h-6" /><path d="M1 20v-6h6" /><path d="M3.51 9a9 9 0 0 1 14.85-3.36M20.49 15a9 9 0 0 1-14.85 3.36" /></svg>
+									</button>
 								</div>
 							</div>
 
